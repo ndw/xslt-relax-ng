@@ -1,3 +1,4 @@
 xslt10 = external "1.0/xslt10.rnc"
 xslt20 = external "2.0/xslt20.rnc"
-start = xslt10 | xslt20
+xslt30 = external "3.0/xslt30.rnc"
+start = xslt10 | xslt20 | xslt30
