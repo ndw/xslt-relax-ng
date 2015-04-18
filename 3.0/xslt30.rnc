@@ -1,27 +1,33 @@
 # XSLT 3.0 Relax NG Schema
-# Copyright (c) 2010-2012, Mohamed ZERGAOUI (Innovimax)
+# 
+# Copyright (c) 2010-2013, Mohamed ZERGAOUI (Innovimax)
+# 
 # All rights reserved.
+# 
 # Redistribution and use in source and binary forms, with or without modification, are permitted provided that the following conditions are met:
 # Redistributions of source code must retain the above copyright notice, this list of conditions and the following disclaimer.
 # Redistributions in binary form must reproduce the above copyright notice, this list of conditions and the following disclaimer in the documentation and/or other materials provided with the distribution.
 # Neither the name of the Mohamed ZERGAOUI or Innovimax nor the names of its contributors may be used to endorse or promote products derived from this software without specific prior written permission.
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS 
+# 
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
 # FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
 # (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT,
 # STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
+# 
 namespace local = ""
 default namespace xsl = "http://www.w3.org/1999/XSL/Transform"
 namespace xs = "http://www.w3.org/2001/XMLSchema"
 
-start = 
+start =
   stylesheet.element
   | transform.element
   | literal-result-element-as-stylesheet
+  
 sequence-constructor.model = (instruction.category | literal-result-element | text)*
+
 literal-result-element-as-stylesheet =
   element * - xsl:* {
-    attribute xsl:version { number.datatype },
+    attribute xsl:version { decimal.datatype },
     literal-result-element-no-version.atts,
     sequence-constructor.model
   }
@@ -36,20 +42,27 @@ literal-result-element.atts =
   literal-result-element-no-version.atts,
   attribute xsl:version { text }?
 
+# These attributes may also appear on a literal result element, but in this case, to distinguish them from user-defined attributes, 
+# the names of the attributes are in the XSLT namespace. They are thus typically written as 
+# xsl:default-collation, 
+# xsl:exclude-result-prefixes, 
+# xsl:expand-text, 
+# xsl:extension-element-prefixes, 
+# xsl:use-when, 
+# xsl:version, 
+# or xsl:xpath-default-namespace.   
 literal-result-element-no-version.atts =
    attribute * - xsl:* { avt.datatype }*
- & attribute xsl:exclude-result-prefixes { exclude.prefixes.datatype }?
- & attribute xsl:extension-element-prefixes { extension.prefixes.datatype }?
- & attribute xsl:xpath-default-namespace { xsd:anyURI }?
- & attribute xsl:default-collation { xsd:anyURI }?
+ & attribute xsl:default-collation { uris.datatype }?
+ & attribute xsl:exclude-result-prefixes { exclude.prefixes.datatype }? # or prefixes.datatype ?
+ & attribute xsl:expand-text { "yes" | "no" }?
+ & attribute xsl:extension-element-prefixes { extension.prefixes.datatype }? # or prefixes.datatype ?
+ & attribute xsl:on-empty { expression.datatype }?
+ & attribute xsl:use-attribute-sets { eqnames.datatype }?
  & attribute xsl:use-when { expression.datatype }?
- & attribute xsl:use-attribute-sets { qnames.datatype }?
- & (attribute xsl:type { xsd:QName }
+ & attribute xsl:xpath-default-namespace { xsd:anyURI }?
+ & (attribute xsl:type { eqname.datatype }
     | attribute xsl:validation { "strict" | "lax" | "preserve" | "strip" })?
-    
-extension.prefixes.datatype = list { xsd:NCName* }
-exclude.prefixes.datatype = list { "#all" | (xsd:NCName | "#default")* }
-other-declarations.model = (declaration.category | top-level-extension)*
 
 top-level-extension =
   element * - (xsl:* | local:*) {
@@ -67,43 +80,62 @@ anyElement =
     
 extension.atts = attribute * - (xsl:* | local:*) { text }*
 
-global.atts = attribute version { text }?,
-   attribute exclude-result-prefixes { exclude.prefixes.datatype }?,
-   attribute extension-element-prefixes { extension.prefixes.datatype }?,
-   attribute xpath-default-namespace { xsd:anyURI }?,
-   attribute default-collation { text }?,
-   attribute use-when { expression.datatype }?
+other-declarations.model = (declaration.category | top-level-extension)*
 
-global.atts.except.version = attribute exclude-result-prefixes { exclude.prefixes.datatype }?,
-   attribute extension-element-prefixes { extension.prefixes.datatype }?,
-   attribute xpath-default-namespace { xsd:anyURI }?,
-   attribute default-collation { text }?,
-   attribute use-when { expression.datatype }?
+# [Definition: There are a number of standard attributes that may appear on any XSLT element: specifically 
+# default-collation, 
+# exclude-result-prefixes,
+# expand-text, 
+# extension-element-prefixes, 
+# use-when, 
+# version, 
+# and xpath-default-namespace.]
+
+global.atts = 
+   attribute default-collation { uris.datatype }?,
+   attribute exclude-result-prefixes { exclude.prefixes.datatype }?, # or prefixes.datatype ?
+   attribute expand-text { "yes" | "no" }?,
+   attribute extension-element-prefixes { extension.prefixes.datatype }?, # or prefixes.datatype ?
+   attribute use-when { expression.datatype }?,
+   attribute version { decimal.datatype }?,
+   attribute xpath-default-namespace { uri.datatype }?
+   
+
+global.atts.except.version = 
+   attribute default-collation { uris.datatype }?,
+   attribute exclude-result-prefixes { exclude.prefixes.datatype }?, # or prefixes.datatype ?
+   attribute expand-text { "yes" | "no" }?,
+   attribute extension-element-prefixes { extension.prefixes.datatype }?, # or prefixes.datatype ?
+   attribute use-when { expression.datatype }?,
+   attribute xpath-default-namespace { uri.datatype }?
 
 qname.datatype = xsd:QName
-eqname.datatype = text # TODO
-qnames.datatype = list { xsd:QName* }
-eqnames.datatype = list { xsd:string* }
+# Extract from XPath 3.0
+#[94]   EQName           ::= QName | URIQualifiedName
+#[104]  QName            ::= [http://www.w3.org/TR/REC-xml-names/#NT-QName]Names
+#[105]  NCName           ::= [http://www.w3.org/TR/REC-xml-names/#NT-NCName]Names
+#[99]   URIQualifiedName ::= BracedURILiteral NCName
+#[100]  BracedURILiteral ::= "Q" "{" [^{}]* "}"
+eqname.datatype = xsd:QName | xsd:token { pattern = "Q\{[^{}]*\}\i\c*" }
+qnames.datatype = list { qname.datatype* }
+eqnames.datatype = list { eqname.datatype* }
 ncname.datatype = xsd:NCName
-NCName.datatype = xsd:NCName
 prefix.datatype = xsd:NCName
 expression.datatype = text
 char.datatype = xsd:string { length = "1" }
 string.datatype = text
 id.datatype = xsd:NCName
-tokens.datatype = list { token* } #xsd:NMTOKENS #list { xsd:NCName* }
-prefixes.datatype = list { token* } #xsd:NMTOKENS #list { xsd:NCName* }
+tokens.datatype = list { token* }
+prefixes.datatype = list { token* }
+extension.prefixes.datatype = list { xsd:NCName* }
+exclude.prefixes.datatype = list { "#all" | (xsd:NCName | "#default")* }
 token.datatype = token
-language.datatype = token
+language.datatype = xsd:language
 nmtoken.datatype = xsd:NMTOKEN
 decimal.datatype = xsd:decimal
-number.datatype = xsd:decimal
 integer.datatype = xsd:integer
 uri.datatype = xsd:anyURI
-absolute-URI.datatype = xsd:anyURI
-uri-list.datatype = list { xsd:anyURI* }
 uris.datatype = list { xsd:anyURI* }
-version-pattern.datatype = text
 pattern.datatype = text
 qname-but-not-ncname.datatype = xsd:QName { pattern = ".*:.*" }
 xs_schema.element = element xs:schema { anyElement* }
@@ -115,6 +147,7 @@ declaration.category =
  | import-schema.element
  | strip-space.element
  | preserve-space.element
+ | decimal-format.element
  | template.element
  | mode.element
  | variable.element
@@ -124,7 +157,6 @@ declaration.category =
  | namespace-alias.element
  | accumulator.element
  | key.element
- | decimal-format.element
  | output.element
  | character-map.element
 
@@ -160,23 +192,35 @@ instruction.category =
  | fork.element
  | analyze-string.element
  | stream.element
+ | map.element
+ | map-entry.element
  | message.element
+ | assert.element
  | fallback.element
  | result-document.element
 package.element =
    element package {
       extension.atts,
       global.atts,
-      attribute xsl:version { decimal.datatype }?,
       attribute name { uri.datatype }?,
       attribute package-version { string.datatype }?,
+      attribute version { decimal.datatype },
+      attribute input-type-annotations { "preserve" | "strip" | "unspecified" }?,
+      attribute default-mode { eqname.datatype | "#unnamed" }?,
+      attribute default-validation { "preserve" | "strip" }?,
+      attribute default-collation { uris.datatype }?,
+      attribute extension-element-prefixes { prefixes.datatype }?,
+      attribute exclude-result-prefixes { prefixes.datatype }?,
+      attribute expand-text { "yes" | "no" }?,
+      attribute use-when { expression.datatype }?,
+      attribute xpath-default-namespace { uri.datatype }?,
       (use-package.element*, (stylesheet.element | transform.element), expose.element*)
    }
 use-package.element =
    element use-package {
       extension.atts,
       global.atts,
-      attribute name { uri.datatype }?,
+      attribute name { uri.datatype },
       attribute package-version { token.datatype }?,
       (accept.element | override.element)*
    }
@@ -184,7 +228,7 @@ expose.element =
    element expose {
       extension.atts,
       global.atts,
-      attribute component { "template" | "function" | "attribute-set" | "variable" | "mode" },
+      attribute component { "template" | "function" | "accumulator" | "attribute-set" | "variable" | "mode" },
       attribute names { tokens.datatype },
       attribute visibility { "public" | "private" | "final" | "abstract" },
       empty
@@ -193,44 +237,48 @@ accept.element =
    element accept {
       extension.atts,
       global.atts,
-      attribute component { "template" | "function" | "attribute-set" | "variable" | "mode" },
+      attribute component { "template" | "function" | "accumulator" | "attribute-set" | "variable" | "mode" },
       attribute names { tokens.datatype },
-      attribute visibility { "public" | "private" | "final" | "abstract" | "hidden" },
+      attribute visibility { "public" | "private" | "final" | "abstract" | "hidden" | "absent" },
       empty
    }
 override.element =
    element override {
       extension.atts,
       global.atts,
-      (template.element | function.element | variable.element | param.element | attribute-set.element)*
+      (template.element | function.element | accumulator.element | variable.element | param.element | attribute-set.element)*
    }
 stylesheet.element =
    element stylesheet {
       extension.atts,
       attribute id { id.datatype }?,
+      attribute version { decimal.datatype }?,
+      attribute default-mode { eqname.datatype | "#unnamed" }?,
+      attribute default-validation { "preserve" | "strip" }?,
+      attribute input-type-annotations { "preserve" | "strip" | "unspecified" }?,
+      attribute default-collation { uris.datatype }?,
       attribute extension-element-prefixes { prefixes.datatype }?,
       attribute exclude-result-prefixes { prefixes.datatype }?,
-      attribute version { decimal.datatype },
+      attribute expand-text { "yes" | "no" }?,
+      attribute use-when { expression.datatype }?,
       attribute xpath-default-namespace { uri.datatype }?,
-      attribute default-validation { "preserve" | "strip" }?,
-      attribute default-collation { uris.datatype }?,
-      attribute default-mode { eqname.datatype | "#unnamed" }?,
-      attribute input-type-annotations { "preserve" | "strip" | "unspecified" }?,
-      (import.element*, other-declarations.model)
+      (use-package.element*, other-declarations.model)
    }
 transform.element =
    element transform {
       extension.atts,
       attribute id { id.datatype }?,
+      attribute version { decimal.datatype }?,
+      attribute default-mode { eqname.datatype | "#unnamed" }?,
+      attribute default-validation { "preserve" | "strip" }?,
+      attribute input-type-annotations { "preserve" | "strip" | "unspecified" }?,
+      attribute default-collation { uris.datatype }?,
       attribute extension-element-prefixes { prefixes.datatype }?,
       attribute exclude-result-prefixes { prefixes.datatype }?,
-      attribute version { decimal.datatype },
+      attribute expand-text { "yes" | "no" }?,
+      attribute use-when { expression.datatype }?,
       attribute xpath-default-namespace { uri.datatype }?,
-      attribute default-validation { "preserve" | "strip" }?,
-      attribute default-collation { uris.datatype }?,
-      attribute default-mode { eqname.datatype | "#unnamed" }?,
-      attribute input-type-annotations { "preserve" | "strip" | "unspecified" }?,
-      (import.element*, other-declarations.model)
+      (use-package.element*, other-declarations.model)
    }
 include.element =
    element include {
@@ -268,6 +316,23 @@ preserve-space.element =
       attribute elements { tokens.datatype },
       empty
    }
+decimal-format.element =
+   element decimal-format {
+      extension.atts,
+      global.atts,
+      attribute name { eqname.datatype }?,
+      attribute decimal-separator { char.datatype }?,
+      attribute grouping-separator { char.datatype }?,
+      attribute infinity { string.datatype }?,
+      attribute minus-sign { char.datatype }?,
+      attribute NaN { string.datatype }?,
+      attribute percent { char.datatype }?,
+      attribute per-mille { char.datatype }?,
+      attribute zero-digit { char.datatype }?,
+      attribute digit { char.datatype }?,
+      attribute pattern-separator { char.datatype }?,
+      empty
+   }
 template.element =
    element template {
       extension.atts,
@@ -275,7 +340,7 @@ template.element =
       attribute match { pattern.datatype }?,
       attribute name { eqname.datatype }?,
       attribute priority { decimal.datatype }?,
-      attribute mode { tokens.datatype }?,
+      attribute mode { list { '#all' | ('#default' | '#unnamed' | eqname.datatype)* } }?,
       attribute as { sequence-type.datatype }?,
       attribute visibility { "public" | "private" | "final" | "abstract" }?,
       (context-item.element?, param.element*, sequence-constructor.model)
@@ -285,7 +350,7 @@ apply-templates.element =
       extension.atts,
       global.atts,
       attribute select { expression.datatype }?,
-      attribute mode { token.datatype }?,
+      attribute mode { (eqname.datatype | '#unnamed' | '#default' | '#current') }?,
       (sort.element | with-param.element)*
    }
 mode.element =
@@ -294,7 +359,6 @@ mode.element =
       global.atts,
       attribute name { eqname.datatype }?,
       attribute streamable { "yes" | "no" }?,
-      attribute initial { "yes" | "no" }?,
       attribute on-no-match { "deep-copy" | "shallow-copy" | "deep-skip" | "shallow-skip" | "text-only-copy" | "fail" }?,
       attribute on-multiple-match { "use-last" | "fail" }?,
       attribute warning-on-no-match { "yes" | "no" }?,
@@ -405,6 +469,7 @@ variable.element =
       attribute name { eqname.datatype },
       attribute select { expression.datatype }?,
       attribute as { sequence-type.datatype }?,
+      attribute static { "yes" | "no" }?,
       attribute visibility { "public" | "private" | "final" | "abstract" }?,
       sequence-constructor.model
    }
@@ -417,6 +482,7 @@ param.element =
       attribute as { sequence-type.datatype }?,
       attribute required { "yes" | "no" }?,
       attribute tunnel { "yes" | "no" }?,
+      attribute static { "yes" | "no" }?,
       attribute visibility { "public" | "private" | "final" | "abstract" }?,
       sequence-constructor.model
    }
@@ -444,6 +510,7 @@ attribute-set.element =
       attribute name { eqname.datatype },
       attribute use-attribute-sets { eqnames.datatype }?,
       attribute visibility { "public" | "private" | "final" | "abstract" }?,
+      attribute streamable { "yes" | "no" }?,
       attribute.element*
    }
 function.element =
@@ -453,7 +520,10 @@ function.element =
       attribute name { eqname.datatype },
       attribute as { sequence-type.datatype }?,
       attribute visibility { "public" | "private" | "final" | "abstract" }?,
+      attribute override-extension-function { "yes" | "no" }?,
       attribute override { "yes" | "no" }?,
+      attribute identity-sensitive { "yes" | "no" }?,
+      attribute cache { "full" | "partial" | "no" }?,
       (param.element*, sequence-constructor.model)
    }
 evaluate.element =
@@ -463,6 +533,7 @@ evaluate.element =
       attribute xpath { expression.datatype },
       attribute as { sequence-type.datatype }?,
       attribute base-uri { uri.datatype | avt.datatype }?,
+      attribute with-params { expression.datatype }?,
       attribute context-item { expression.datatype }?,
       attribute namespace-context { expression.datatype }?,
       attribute schema-aware { "yes" | "no" | avt.datatype }?,
@@ -486,6 +557,7 @@ element.element =
       attribute use-attribute-sets { eqnames.datatype }?,
       attribute type { eqname.datatype }?,
       attribute validation { "strict" | "lax" | "preserve" | "strip" }?,
+      attribute on-empty { expression.datatype }?,
       sequence-constructor.model
    }
 attribute.element =
@@ -498,6 +570,7 @@ attribute.element =
       attribute separator { string.datatype | avt.datatype }?,
       attribute type { eqname.datatype }?,
       attribute validation { "strict" | "lax" | "preserve" | "strip" }?,
+      attribute on-empty { expression.datatype }?,
       sequence-constructor.model
    }
 text.element =
@@ -557,6 +630,7 @@ copy.element =
       attribute use-attribute-sets { eqnames.datatype }?,
       attribute type { eqname.datatype }?,
       attribute validation { "strict" | "lax" | "preserve" | "strip" }?,
+      attribute on-empty { expression.datatype }?,
       sequence-constructor.model
    }
 copy-of.element =
@@ -573,7 +647,7 @@ sequence.element =
    element sequence {
       extension.atts,
       global.atts,
-      attribute select { expression.datatype },
+      attribute select { expression.datatype }?,
       sequence-constructor.model
    }
 number.element =
@@ -633,6 +707,8 @@ merge.element =
    element merge {
       extension.atts,
       global.atts,
+      attribute bind-group { eqname.datatype }?,
+      attribute bind-key { eqname.datatype }?,
       (merge-source.element+, merge-action.element, fallback.element*)
    }
 merge-source.element =
@@ -641,7 +717,8 @@ merge-source.element =
       global.atts,
       attribute for-each { expression.datatype }?,
       attribute select { expression.datatype },
-      attribute name { ncname.datatype }?,
+      attribute bind-source { eqname.datatype }?,
+      attribute streamable { "yes" | "no" }?,
       attribute sort-before-merge { "yes" | "no" }?,
       merge-key.element+
    }
@@ -667,7 +744,7 @@ fork.element =
    element fork {
       extension.atts,
       global.atts,
-      (sequence-constructor.model)
+      ((sequence.element | fallback.element))+
    }
 analyze-string.element =
    element analyze-string {
@@ -690,13 +767,21 @@ non-matching-substring.element =
       global.atts,
       sequence-constructor.model
    }
+stream.element =
+   element stream {
+      extension.atts,
+      global.atts,
+      attribute href { uri.datatype | avt.datatype },
+      attribute validation { "strict" | "lax" | "preserve" | "strip" }?,
+      attribute type { eqname.datatype }?,
+      sequence-constructor.model
+   }
 accumulator.element =
    element accumulator {
       extension.atts,
       global.atts,
-      attribute name { eqname.datatype }?,
-      attribute post-descent { eqname.datatype }?,
-      attribute initial-value { expression.datatype }?,
+      attribute name { eqname.datatype },
+      attribute initial-value { expression.datatype },
       attribute as { sequence-type.datatype }?,
       attribute visibility { "public" | "private" | "final" | "abstract" }?,
       attribute streamable { "yes" | "no" }?,
@@ -711,13 +796,6 @@ accumulator-rule.element =
       attribute new-value { expression.datatype },
       empty
    }
-stream.element =
-   element stream {
-      extension.atts,
-      global.atts,
-      attribute href { uri.datatype | avt.datatype },
-      sequence-constructor.model
-   }
 key.element =
    element key {
       extension.atts,
@@ -729,22 +807,19 @@ key.element =
       attribute collation { uri.datatype }?,
       sequence-constructor.model
    }
-decimal-format.element =
-   element decimal-format {
+map.element =
+   element map {
       extension.atts,
       global.atts,
-      attribute name { eqname.datatype }?,
-      attribute decimal-separator { char.datatype }?,
-      attribute grouping-separator { char.datatype }?,
-      attribute infinity { string.datatype }?,
-      attribute minus-sign { char.datatype }?,
-      attribute NaN { string.datatype }?,
-      attribute percent { char.datatype }?,
-      attribute per-mille { char.datatype }?,
-      attribute zero-digit { char.datatype }?,
-      attribute digit { char.datatype }?,
-      attribute pattern-separator { char.datatype }?,
-      empty
+      sequence-constructor.model
+   }
+map-entry.element =
+   element map-entry {
+      extension.atts,
+      global.atts,
+      attribute key { expression.datatype },
+      attribute select { expression.datatype }?,
+      sequence-constructor.model
    }
 message.element =
    element message {
@@ -752,6 +827,15 @@ message.element =
       global.atts,
       attribute select { expression.datatype }?,
       attribute terminate { "yes" | "no" | avt.datatype }?,
+      attribute error-code { eqname.datatype | avt.datatype }?,
+      sequence-constructor.model
+   }
+assert.element =
+   element assert {
+      extension.atts,
+      global.atts,
+      attribute test { expression.datatype },
+      attribute select { expression.datatype }?,
       attribute error-code { eqname.datatype | avt.datatype }?,
       sequence-constructor.model
    }
@@ -776,11 +860,14 @@ result-document.element =
       attribute doctype-system { string.datatype | avt.datatype }?,
       attribute encoding { string.datatype | avt.datatype }?,
       attribute escape-uri-attributes { "yes" | "no" | avt.datatype }?,
+      attribute html-version { decimal.datatype | avt.datatype }?,
       attribute include-content-type { "yes" | "no" | avt.datatype }?,
       attribute indent { "yes" | "no" | avt.datatype }?,
+      attribute item-separator { string.datatype | avt.datatype }?,
       attribute media-type { string.datatype | avt.datatype }?,
       attribute normalization-form { "NFC" | "NFD" | "NFKC" | "NFKD" | "fully-normalized" | "none" | nmtoken.datatype | avt.datatype }?,
       attribute omit-xml-declaration { "yes" | "no" | avt.datatype }?,
+      attribute parameter-document { uri.datatype | avt.datatype }?,
       attribute standalone { "yes" | "no" | "omit" | avt.datatype }?,
       attribute suppress-indentation { eqnames.datatype | avt.datatype }?,
       attribute undeclare-prefixes { "yes" | "no" | avt.datatype }?,
@@ -800,11 +887,14 @@ output.element =
       attribute doctype-system { string.datatype }?,
       attribute encoding { string.datatype }?,
       attribute escape-uri-attributes { "yes" | "no" }?,
+      attribute html-version { decimal.datatype }?,
       attribute include-content-type { "yes" | "no" }?,
       attribute indent { "yes" | "no" }?,
+      attribute item-separator { string.datatype }?,
       attribute media-type { string.datatype }?,
       attribute normalization-form { "NFC" | "NFD" | "NFKC" | "NFKD" | "fully-normalized" | "none" | nmtoken.datatype }?,
       attribute omit-xml-declaration { "yes" | "no" }?,
+      attribute parameter-document { uri.datatype }?,
       attribute standalone { "yes" | "no" | "omit" }?,
       attribute suppress-indentation { eqnames.datatype }?,
       attribute undeclare-prefixes { "yes" | "no" }?,
@@ -831,5 +921,5 @@ output-character.element =
 avt.datatype =
   xsd:string {
     pattern =
-      """([^\{\}]|\{\{|\}\}|\{([^"'\{\}]|"[^"]*"|'[^']*')+\})*"""
+      """([^\{\}]|\{\{|\}\}|\{([^"'\{\}]|"[^"]*"|'[^']*')+\})*""" # this regexp will not work in all the case.
       }
