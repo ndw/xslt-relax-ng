@@ -554,7 +554,7 @@ result-document.element =
    element result-document {
       global.atts,
       extension.atts,
-      attribute format { xsd:QName }?,
+      attribute format { xsd:QName | brace-avt.datatype }?,
       attribute href { xsd:anyURI | brace-avt.datatype }?,
       attribute validation { validation.datatype }?,
       attribute type { xsd:QName }?,
