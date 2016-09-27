@@ -173,8 +173,8 @@ analyze-string.element =
       attribute select { expression.datatype },
       attribute regex { avt.datatype },
       attribute flags { avt.datatype }?,
-      matching-substring.element?,
-      non-matching-substring.element?,
+      ((matching-substring.element, non-matching-substring.element?)
+       | non-matching-substring.element),
       fallback.element*
    }
 
