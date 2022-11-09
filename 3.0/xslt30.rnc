@@ -1,6 +1,6 @@
 # XSLT 3.0 Relax NG Schema
 # 
-# Copyright (c) 2010-2015, Mohamed ZERGAOUI (Innovimax)
+# Copyright (c) 2010-2017, Mohamed ZERGAOUI (Innovimax)
 # 
 # All rights reserved.
 # 
@@ -62,12 +62,14 @@ literal-result-element-no-version.atts =
  & attribute xsl:exclude-result-prefixes { exclude.prefixes.datatype }? # or prefixes.datatype ?
  & attribute xsl:expand-text { boolean.datatype }?
  & attribute xsl:extension-element-prefixes { extension.prefixes.datatype }? # or prefixes.datatype ?
+ & attribute xsl:inherit-namespaces { boolean.datatype }?
  & attribute xsl:on-empty { expression.datatype }?
  & attribute xsl:use-attribute-sets { eqnames.datatype }?
  & attribute xsl:use-when { expression.datatype }?
  & attribute xsl:xpath-default-namespace { xsd:anyURI }?
  & (attribute xsl:type { eqname.datatype }
     | attribute xsl:validation { "strict" | "lax" | "preserve" | "strip" })?
+
 
 top-level-extension =
   element * - (xsl:* | local:*) {
@@ -145,7 +147,7 @@ qnames.datatype = list { qname.datatype* }
 eqnames.datatype = list { eqname.datatype* }
 ncname.datatype = xsd:NCName
 prefix.datatype = xsd:NCName
-boolean.datatype = "yes" | "no" | "true" | "false"
+boolean.datatype = "yes" | "no" | "true" | "false" | "0" | "1" 
 expression.datatype = text
 char.datatype = xsd:string { length = "1" }
 string.datatype = text
@@ -177,6 +179,7 @@ declaration.category =
  | decimal-format.element
  | template.element
  | mode.element
+ | global-context-item.element
  | variable.element
  | param.element
  | attribute-set.element
@@ -212,7 +215,7 @@ instruction.category =
  | copy.element
  | copy-of.element
  | sequence.element
- | conditional-content.element
+ | where-populated.element
  | on-empty.element
  | on-non-empty.element
  | number.element
@@ -221,7 +224,7 @@ instruction.category =
  | merge.element
  | fork.element
  | analyze-string.element
- | stream.element
+ | source-document.element
  | map.element
  | map-entry.element
  | message.element
@@ -231,6 +234,8 @@ instruction.category =
 package.element =
    element package {
       extension.atts,
+      (attribute id { id.datatype }
+      | attribute _id { avt.datatype })?,
       (attribute name { uri.datatype }
       | attribute _name { avt.datatype })?,
       (attribute package-version { string.datatype }
@@ -257,7 +262,7 @@ package.element =
       | attribute _use-when { avt.datatype })?,
       (attribute xpath-default-namespace { uri.datatype }
       | attribute _xpath-default-namespace { avt.datatype })?,
-      ((expose.element | global-context-item.element | declarations.model)*)
+      ((expose.element | declarations.model)*)
    }
 use-package.element =
    element use-package {
@@ -273,7 +278,7 @@ expose.element =
    element expose {
       extension.atts,
       global.atts,
-      (attribute component { "template" | "function" | "attribute-set" | "variable" | "mode" }
+      (attribute component { "template" | "function" | "attribute-set" | "variable" | "mode" | "*" }
       | attribute _component { avt.datatype }),
       (attribute names { tokens.datatype }
       | attribute _names { avt.datatype }),
@@ -285,11 +290,11 @@ accept.element =
    element accept {
       extension.atts,
       global.atts,
-      (attribute component { "template" | "function" | "attribute-set" | "variable" | "mode" }
+      (attribute component { "template" | "function" | "attribute-set" | "variable" | "mode" | "*" }
       | attribute _component { avt.datatype }),
       (attribute names { tokens.datatype }
       | attribute _names { avt.datatype }),
-      (attribute visibility { "public" | "private" | "final" | "abstract" | "hidden" | "absent" }
+      (attribute visibility { "public" | "private" | "final" | "abstract" | "hidden" }
       | attribute _visibility { avt.datatype }),
       empty
    }
@@ -461,6 +466,8 @@ mode.element =
       | attribute _name { avt.datatype })?,
       (attribute streamable { boolean.datatype }
       | attribute _streamable { avt.datatype })?,
+      (attribute use-accumulators { tokens.datatype }
+      | attribute _use-accumulators { avt.datatype })?,
       (attribute on-no-match { "deep-copy" | "shallow-copy" | "deep-skip" | "shallow-skip" | "text-only-copy" | "fail" }
       | attribute _on-no-match { avt.datatype })?,
       (attribute on-multiple-match { "use-last" | "fail" }
@@ -493,10 +500,6 @@ global-context-item.element =
       | attribute _as { avt.datatype })?,
       (attribute use { "required" | "optional" | "absent" }
       | attribute _use { avt.datatype })?,
-      (attribute streamable { boolean.datatype }
-      | attribute _streamable { avt.datatype })?,
-      (attribute use-accumulators { tokens.datatype }
-      | attribute _use-accumulators { avt.datatype })?,
       empty
    }
 apply-imports.element =
@@ -683,9 +686,9 @@ function.element =
       | attribute _override-extension-function { avt.datatype })?,
       (attribute override { boolean.datatype }
       | attribute _override { avt.datatype })?,
-      (attribute identity-sensitive { boolean.datatype }
-      | attribute _identity-sensitive { avt.datatype })?,
-      (attribute cache { "full" | "partial" | "no" }
+      (attribute new-each-time { "yes" | "true" | "1" | "no" | "false" | "0" | "maybe" }
+      | attribute _new-each-time { avt.datatype })?,
+      (attribute cache { boolean.datatype }
       | attribute _cache { avt.datatype })?,
       (param.element*, sequence-constructor.model)
    }
@@ -837,6 +840,8 @@ copy-of.element =
       global.atts,
       (attribute select { expression.datatype }
       | attribute _select { avt.datatype }),
+      (attribute copy-accumulators { boolean.datatype }
+      | attribute _copy-accumulators { avt.datatype })?,
       (attribute copy-namespaces { boolean.datatype }
       | attribute _copy-namespaces { avt.datatype })?,
       (attribute type { eqname.datatype }
@@ -853,8 +858,8 @@ sequence.element =
       | attribute _select { avt.datatype })?,
       sequence-constructor.model
    }
-conditional-content.element =
-   element conditional-content {
+where-populated.element =
+   element where-populated {
       extension.atts,
       global.atts,
       sequence-constructor.model
@@ -967,8 +972,8 @@ merge-source.element =
       | attribute _name { avt.datatype })?,
       (attribute for-each-item { expression.datatype }
       | attribute _for-each-item { avt.datatype })?,
-      (attribute for-each-stream { expression.datatype }
-      | attribute _for-each-stream { avt.datatype })?,
+      (attribute for-each-source { expression.datatype }
+      | attribute _for-each-source { avt.datatype })?,
       (attribute select { expression.datatype }
       | attribute _select { avt.datatype }),
       (attribute streamable { boolean.datatype }
@@ -1023,8 +1028,7 @@ analyze-string.element =
       | attribute _regex { avt.datatype }),
       (attribute flags { string.datatype | avt.datatype }
       | attribute _flags { avt.datatype })?,
-      ((matching-substring.element, non-matching-substring.element?) | non-matching-substring.element),
-      fallback.element*
+      (matching-substring.element?, non-matching-substring.element?, fallback.element*)
    }
 matching-substring.element =
    element matching-substring {
@@ -1038,12 +1042,14 @@ non-matching-substring.element =
       global.atts,
       sequence-constructor.model
    }
-stream.element =
-   element stream {
+source-document.element =
+   element source-document {
       extension.atts,
       global.atts,
       (attribute href { uri.datatype | avt.datatype }
       | attribute _href { avt.datatype }),
+      (attribute streamable { boolean.datatype }
+      | attribute _streamable { avt.datatype })?,
       (attribute use-accumulators { tokens.datatype }
       | attribute _use-accumulators { avt.datatype })?,
       (attribute validation { "strict" | "lax" | "preserve" | "strip" }
@@ -1152,7 +1158,7 @@ result-document.element =
       | attribute _validation { avt.datatype })?,
       (attribute type { eqname.datatype }
       | attribute _type { avt.datatype })?,
-      (attribute method { "xml" | "html" | "xhtml" | "text" | "json" | "adaptive" | eqname.datatype }
+      (attribute method { "xml" | "html" | "xhtml" | "text" | "json" | "adaptive" | eqname.datatype | avt.datatype }
       | attribute _method { avt.datatype })?,
       (attribute allow-duplicate-names { boolean.datatype | avt.datatype }
       | attribute _allow-duplicate-names { avt.datatype })?,
@@ -1178,7 +1184,7 @@ result-document.element =
       | attribute _indent { avt.datatype })?,
       (attribute item-separator { string.datatype | avt.datatype }
       | attribute _item-separator { avt.datatype })?,
-      (attribute json-node-output-method { "xml" | "html" | "xhtml" | "text" | eqname.datatype }
+      (attribute json-node-output-method { "xml" | "html" | "xhtml" | "text" | eqname.datatype | avt.datatype }
       | attribute _json-node-output-method { avt.datatype })?,
       (attribute media-type { string.datatype | avt.datatype }
       | attribute _media-type { avt.datatype })?,
